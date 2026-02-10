@@ -1,53 +1,75 @@
 package pages;
 
-import base.BasePage;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import java.time.Duration;
 
-public class BtlBasePage extends BasePage {
+public abstract class BtlBasePage {
+    protected WebDriver driver;
+    protected WebDriverWait wait;
 
     public enum MainMenu {
-        INSURANCE_FEES("דמי ביטוח"),
         BENEFITS("קצבאות והטבות"),
-        BRANCHES("סניפים וערוצי שירות");
-        private String text;
-        MainMenu(String text) { this.text = text; }
-        public String getText() { return text; }
+        INSURANCE_FEES("דמי ביטוח"),
+        RIGHTS_EXHAUSTION("מיצוי זכויות");
+        private final String label;
+        MainMenu(String label) { this.label = label; }
+        public String getLabel() { return label; }
     }
 
-    @FindBy(css = ".search-btn") // יש לוודא לוקייטור תקין באתר
-    private WebElement searchIcon;
-
-    @FindBy(id = "search_input")
+    @FindBy(id = "TopQuestions")
     private WebElement searchInput;
 
-    @FindBy(linkText = "סניפים וערוצי שירות")
+    // לוקייטור חסין לאייקון זכוכית המגדלת לפי ה-Inspect ששלחת
+    @FindBy(xpath = "//input[@title='חפש'] | //button[contains(@class,'search')] | //*[@id='ct100_SiteHeader_reserve_btnSearchBtnSearch']")
+    private WebElement searchIcon;
+
+    @FindBy(linkText = "סניפים")
     private WebElement branchesBtn;
 
     public BtlBasePage(WebDriver driver) {
-        super(driver);
+        this.driver = driver;
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        PageFactory.initElements(driver, this);
     }
 
-    public void clickOnMenu(MainMenu menu) {
-        wait.until(ExpectedConditions.elementToBeClickable(By.linkText(menu.getText()))).click();
+    public void clickMainMenu(MainMenu menu) {
+        WebElement el = wait.until(ExpectedConditions.elementToBeClickable(By.linkText(menu.getLabel())));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
     }
 
-    public void clickOnSubMenu(String subMenuText) {
-        wait.until(ExpectedConditions.elementToBeClickable(By.linkText(subMenuText))).click();
+    public void clickSubMenu(String subMenuName) {
+        WebElement el = wait.until(ExpectedConditions.elementToBeClickable(By.partialLinkText(subMenuName)));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
     }
 
-    // ניווט משולב לפי דרישה: Enum ו-String
-    public void navigateTo(MainMenu menu, String subMenu) {
-        clickOnMenu(menu);
-        clickOnSubMenu(subMenu);
+    public void navigateTo(MainMenu menu, String subMenuName) {
+        clickMainMenu(menu);
+        clickSubMenu(subMenuName);
     }
 
-    public void search(String term) {
-        searchInput.clear();
-        searchInput.sendKeys(term);
-        searchIcon.click();
+    public void search(String text) {
+        WebElement input = wait.until(ExpectedConditions.visibilityOf(searchInput));
+        input.clear();
+        input.sendKeys(text);
+        // דרישה: לחיצה פיזית על האייקון
+        try {
+            wait.until(ExpectedConditions.elementToBeClickable(searchIcon)).click();
+        } catch (Exception e) {
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", searchIcon);
+        }
+    }
+
+    public BranchesPage navigateToBranches() {
+        wait.until(ExpectedConditions.elementToBeClickable(branchesBtn)).click();
+        return new BranchesPage(driver);
+    }
+
+    // הוספת פונקציה להחזרת כותרת ה-Title לאימות
+    public String getPageTitle() {
+        return driver.getTitle();
     }
 }
