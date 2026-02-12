@@ -23,12 +23,14 @@ public abstract class BtlBasePage {
     @FindBy(id = "TopQuestions")
     private WebElement searchInput;
 
-    // לוקייטור חסין לאייקון זכוכית המגדלת לפי ה-Inspect ששלחת
-    @FindBy(xpath = "//input[@title='חפש'] | //button[contains(@class,'search')] | //*[@id='ct100_SiteHeader_reserve_btnSearchBtnSearch']")
+    @FindBy(xpath = "//input[@title='חפש'] | //*[@id='ct100_SiteHeader_reserve_btnSearchBtnSearch']")
     private WebElement searchIcon;
 
     @FindBy(linkText = "סניפים")
     private WebElement branchesBtn;
+
+    @FindBy(xpath = "//*[contains(@class,'breadcrumb')]")
+    private WebElement breadcrumbArea;
 
     public BtlBasePage(WebDriver driver) {
         this.driver = driver;
@@ -36,26 +38,18 @@ public abstract class BtlBasePage {
         PageFactory.initElements(driver, this);
     }
 
-    public void clickMainMenu(MainMenu menu) {
-        WebElement el = wait.until(ExpectedConditions.elementToBeClickable(By.linkText(menu.getLabel())));
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
-    }
-
-    public void clickSubMenu(String subMenuName) {
-        WebElement el = wait.until(ExpectedConditions.elementToBeClickable(By.partialLinkText(subMenuName)));
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
-    }
-
     public void navigateTo(MainMenu menu, String subMenuName) {
-        clickMainMenu(menu);
-        clickSubMenu(subMenuName);
+        WebElement main = wait.until(ExpectedConditions.elementToBeClickable(By.linkText(menu.getLabel())));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", main);
+
+        WebElement sub = wait.until(ExpectedConditions.elementToBeClickable(By.partialLinkText(subMenuName)));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", sub);
     }
 
     public void search(String text) {
         WebElement input = wait.until(ExpectedConditions.visibilityOf(searchInput));
         input.clear();
         input.sendKeys(text);
-        // דרישה: לחיצה פיזית על האייקון
         try {
             wait.until(ExpectedConditions.elementToBeClickable(searchIcon)).click();
         } catch (Exception e) {
@@ -68,8 +62,8 @@ public abstract class BtlBasePage {
         return new BranchesPage(driver);
     }
 
-    // הוספת פונקציה להחזרת כותרת ה-Title לאימות
-    public String getPageTitle() {
-        return driver.getTitle();
+    public String getBreadcrumbsText() {
+        ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, 0);");
+        return wait.until(ExpectedConditions.visibilityOf(breadcrumbArea)).getText();
     }
 }
